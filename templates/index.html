@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>rich text box</title>
+
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<!-- include summernote css/js -->
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote.min.js"></script>
+<script type="text/javascript" src="./static/js/summernote-file.js"></script>
+
+
+</head>
+<body>
+
+<h1>Comment Box</h1>
+
+
+<form method="post" action="/">
+  <textarea id="summernote" name="editordata"></textarea>
+  <div id="progress-container" style="display:none; margin-top: 10px;">
+    <div id="progress-bar" style="width: 0%; height: 20px; background-color: green; text-align: center; color: white;">0%</div>
+  </div>
+  <input type="submit" name="" value="Add Content">
+</form>
+
+<br>
+
+  {% for item in content %}
+      <div id="comment-{{ item.id }}" style="border: 2px solid #ccc; margin-bottom: 10px; padding: 10px;">
+         <div>{{ item.content|safe }}</div>
+         <button onclick="deleteComment({{ item.id }})">Delete</button>
+      </div>
+  {% endfor %}
+
+</body>
+<script>
+
+
+function deleteComment(commentId) {
+    fetch(`/delete/${commentId}`, {
+      method: 'DELETE',
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message === 'Comment deleted successfully!') {
+          document.getElementById(`comment-${commentId}`).remove();
+        } else {
+          alert('Error deleting comment');
+        }
+      })
+      .catch(error => console.error('Error:', error));
+  }
+
+  function progressHandlingFunction(e) {
+  if (e.lengthComputable) {
+    var percentComplete = Math.round((e.loaded / e.total) * 100);
+    console.log(percentComplete + '%'); // Log current progress
+
+    // Update progress bar
+    var progressBar = document.getElementById("progress-bar");
+    var progressContainer = document.getElementById("progress-container");
+
+    progressBar.style.width = percentComplete + "%";
+    progressBar.textContent = percentComplete + "%";
+
+    // Show the progress bar if not already visible
+    if (percentComplete > 0) {
+      progressContainer.style.display = "block";
+    }
+
+    // Reset progress on complete
+    if (e.loaded === e.total) {
+      console.log("Upload finished.");
+      setTimeout(() => {
+        progressContainer.style.display = "none"; // Hide after a short delay
+        progressBar.style.width = "0%"; // Reset for next upload
+        progressBar.textContent = "0%";
+      }, 1000);
+    }
+  }
+}
+
+
+  // other file types please refer https://github.com/mathieu-coingt/summernote-file/tree/master
+  $('#summernote').summernote({
+    height: 200,
+    toolbar: [
+      ['style', ['style']],
+      ['style', ['bold', 'italic', 'underline', 'clear']],
+      ['font', ['strikethrough', 'superscript', 'subscript']],
+      ['fontsize', ['fontsize']],
+      ['color', ['color']],
+      ['insert', ['ajaximageupload', 'link', 'video', 'table', 'picture','file']],
+      ['para', ['ul', 'ol', 'paragraph']],
+      ['height', ['height']],
+      ['misc', ['emoji']],
+      ['view', ['fullscreen']],
+    ],
+    callbacks: {
+
+      // onFileUpload: function(file) {
+      //       //Your own code goes here
+      //       alert("hello");
+      //   },
+
+        onFileUpload: function (files) {
+        if (files.length > 0) {
+          var formData = new FormData();
+          formData.append("file", files[0]);
+
+          file=files[0];
+
+          $.ajax({
+            url: "/upload", // Endpoint to upload the image
+            data: formData,
+            type: 'POST',
+            cache: false,
+            contentType: false,
+            processData: false,
+            
+            success: function (response) {
+              if (response.url) {
+                // Insert the uploaded image into Summernote
+                // $('#summernote').summernote('insertImage', response.url, 'Uploaded Image');
+
+                      //Other file type
+                    elem = document.createElement("a");
+                    let linkText = document.createTextNode(file.name);
+                    elem.appendChild(linkText);
+                    elem.title = file.name;
+                    elem.href = response.url;
+                    console.log(elem)
+                    $('#summernote').summernote('editor.insertNode', elem);
+                    // $('#summernote').summernote('insertImage', response.url, 'Uploaded Image');
+
+              } else {
+                alert("Failed to upload image");
+              }
+            },
+            error: function () {
+              alert("Error uploading image");
+            }
+          });
+        }
+      },
+
+      onImageUpload: function (files) {
+        if (files.length > 0) {
+          var formData = new FormData();
+          formData.append("file", files[0]);
+
+          $.ajax({
+            url: "/upload", // Endpoint to upload the image
+            data: formData,
+            type: 'POST',
+            cache: false,
+            contentType: false,
+            processData: false,
+            xhr: function() { //Handle progress upload
+            let myXhr = $.ajaxSettings.xhr();
+            if (myXhr.upload) myXhr.upload.addEventListener('progress', progressHandlingFunction, false);
+            return myXhr;
+        },
+            success: function (response) {
+              if (response.url) {
+                // Insert the uploaded image into Summernote
+                $('#summernote').summernote('insertImage', response.url, 'Uploaded Image');
+              } else {
+                alert("Failed to upload image");
+              }
+            },
+            error: function () {
+              alert("Error uploading image");
+            }
+          });
+        }
+      }
+
+      
+    }
+});
+
+
+
+
+
+
+
+
+  </script>
+</html>
