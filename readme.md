@@ -1,3 +1,12 @@
+## how to run code
+```
+1. install the dependency 
+2. export aws creds
+3. replace aws bucket 
+4. replace s3 url
+5. python3 app.py
+```
+
 ## code
 https://www.youtube.com/watch?v=Ak-CtugDRFA
 
